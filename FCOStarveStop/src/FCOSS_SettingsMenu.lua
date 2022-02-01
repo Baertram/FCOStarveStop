@@ -1,6 +1,8 @@
 if FCOStarveStop == nil then FCOStarveStop = {} end
 local FCOSS = FCOStarveStop
 
+local CM = CALLBACK_MANAGER
+
 ------------------------------------------------------------------------------------------------------------
 -- LibAddonMenu (LAM) Settings panel
 ------------------------------------------------------------------------------------------------------------
@@ -23,12 +25,17 @@ function FCOSS.buildAddonMenu()
         website             = addonVars.addonWebsite
     }
 
+    --Are other addons loaded?
+    FCOSS.checkIfOtherAddonsAreActive()
+    local isAutoSlotSwitchLoaded = FCOSS.otherAddons.autoSlotSwitch["isLoaded"]
+
     -- !!! RU Patch Section START
     --  Add english language description behind language descriptions in other languages
     local function nvl(val) if val == nil then return "..." end return val end
     local LV_Cur = FCOSS.localizationVars.fco_ss_loc
     local LV_Eng = FCOSS.localizationVars.localizationAll[1]
     local languageOptions = {}
+    local languageOptionsValues = {}
     for i=1, FCOSS.numVars.languageCount do
         local s="options_language_dropdown_selection"..i
         if LV_Cur==LV_Eng then
@@ -36,6 +43,7 @@ function FCOSS.buildAddonMenu()
         else
             languageOptions[i] = nvl(LV_Cur[s]) .. " (" .. nvl(LV_Eng[s]) .. ")"
         end
+        languageOptionsValues[i] = i
     end
     -- !!! RU Patch Section END
 
@@ -44,6 +52,10 @@ function FCOSS.buildAddonMenu()
     local savedVariablesOptions = {
         [1] = fcoSSLocVars["options_savedVariables_dropdown_selection1"],
         [2] = fcoSSLocVars["options_savedVariables_dropdown_selection2"],
+    }
+    local savedVariablesOptionsValues = {
+        [1] = 1,
+        [2] = 2,
     }
 
     local texturesList = {}
@@ -86,7 +98,7 @@ function FCOSS.buildAddonMenu()
     local function addonMenuOnLoadCallback(panel)
         if panel == FCOSS.addonMenuPanel then
             --UnRegister the callback for the LAM2 panel created function
-            CALLBACK_MANAGER:UnregisterCallback("LAM-PanelControlsCreated", addonMenuOnLoadCallback)
+            CM:UnregisterCallback("LAM-PanelControlsCreated", addonMenuOnLoadCallback)
             --Set the text for the selected food buff AlertSound label
             FCOStarveStop_Settings_AlertSound.label:SetText(fcoSSLocVars["options_alert_sound"] .. ": " .. FCOSS.sounds[settings.alertSound])
             --Set the text for the selected potion AlertSound label
@@ -151,17 +163,17 @@ function FCOSS.buildAddonMenu()
             end)
 
             --Register the callback for the LAM panel refresh function
-            CALLBACK_MANAGER:RegisterCallback("LAM-RefreshPanel", addonMenuOnRefreshCallback)
+            CM:RegisterCallback("LAM-RefreshPanel", addonMenuOnRefreshCallback)
         end -- if panel == FCOSS.addonMenuPanel then
     end -- local function addonMenuOnLoadCallback(panel)
     --Register the callback for the LAM panel created function
-    CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", addonMenuOnLoadCallback)
+    CM:RegisterCallback("LAM-PanelControlsCreated", addonMenuOnLoadCallback)
 
     local function addonMenuOnPanelOpenedCallback(...)
         FCOSS.addonMenu.isShown = true
     end
     --Register the callback for the LAM panel opened function
-    CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", addonMenuOnPanelOpenedCallback)
+    CM:RegisterCallback("LAM-PanelOpened", addonMenuOnPanelOpenedCallback)
     local function addonMenuOnPanelClosedCallback(...)
         FCOSS.addonMenu.isShown = false
         --Check 1 second later if any other panel is shown -> If not: LAM is closed!
@@ -173,7 +185,7 @@ function FCOSS.buildAddonMenu()
         end, 1000)
     end
     --Register the callback for the LAM panel closed function
-    CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", addonMenuOnPanelClosedCallback)
+    CM:RegisterCallback("LAM-PanelClosed", addonMenuOnPanelClosedCallback)
 
     --The options panel data for the LAM settings of this addon
     FCOSS.optionsData  = {
@@ -192,8 +204,10 @@ function FCOSS.buildAddonMenu()
             name = fcoSSLocVars["options_language"],
             tooltip = fcoSSLocVars["options_language_tooltip"],
             choices = languageOptions,
-            getFunc = function() return languageOptions[FCOSS.settingsVars.defaultSettings.language] end,
+            choicesValues = languageOptionsValues,
+            getFunc = function() return FCOSS.settingsVars.defaultSettings.language end,
             setFunc = function(value)
+                --[[
                 for i,v in pairs(languageOptions) do
                     if v == value then
                         FCOSS.settingsVars.defaultSettings.language = i
@@ -203,6 +217,10 @@ function FCOSS.buildAddonMenu()
                         ReloadUI()
                     end
                 end
+                ]]
+                FCOSS.settingsVars.defaultSettings.language = value
+                settings.languageChoosen = true
+                ReloadUI()
             end,
             disabled = function() return settings.alwaysUseClientLanguage end,
             warning = fcoSSLocVars["options_language_description1"],
@@ -219,20 +237,24 @@ function FCOSS.buildAddonMenu()
             default = defaults.alwaysUseClientLanguage,
             warning = fcoSSLocVars["options_language_description1"],
         },
-
         {
             type = 'dropdown',
             name = fcoSSLocVars["options_savedvariables"],
             tooltip = fcoSSLocVars["options_savedvariables_tooltip"],
             choices = savedVariablesOptions,
-            getFunc = function() return savedVariablesOptions[FCOSS.settingsVars.defaultSettings.saveMode] end,
+            choicesValues = savedVariablesOptionsValues,
+            getFunc = function() return FCOSS.settingsVars.defaultSettings.saveMode end,
             setFunc = function(value)
+                --[[
                 for i,v in pairs(savedVariablesOptions) do
                     if v == value then
                         FCOSS.settingsVars.defaultSettings.saveMode = i
                         ReloadUI()
                     end
                 end
+                ]]
+                FCOSS.settingsVars.defaultSettings.saveMode = value
+                ReloadUI()
             end,
             warning = fcoSSLocVars["options_language_description1"],
         },
@@ -441,7 +463,7 @@ function FCOSS.buildAddonMenu()
                     zo_callLater(function()
                         FCOSS.preventerVars.disableTestAlertButton = false
                         --Update the LAM panel controls to enable the test alert button again
-                        CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", FCOSS.addonMenuPanel)
+                        CM:FireCallbacks("LAM-RefreshPanel", FCOSS.addonMenuPanel)
                     end, delay + 2000)
                 end
             end,
@@ -933,9 +955,19 @@ function FCOSS.buildAddonMenu()
                         settings.preferAutoSlotSwitch = value
                     end,
                     default = defaults.preferAutoSlotSwitch,
-                    disabled			= function() return not FCOSS.otherAddons.autoSlotSwitch["isLoaded"] end,
+                    disabled			= function() return not isAutoSlotSwitchLoaded end,
                 },
 
+                {
+                    type              = "checkbox",
+                    name              = fcoSSLocVars["options_change_to_last_slot_after_companion_usage_from_qs"],
+                    tooltip           = fcoSSLocVars["options_change_to_last_slot_after_companion_usage_from_qs_tooltip"],
+                    getFunc           = function() return settings.changeToLastSlotAfterCompanionUsageFromQuickSlots end,
+                    setFunc           = function(value)
+                        settings.changeToLastSlotAfterCompanionUsageFromQuickSlots = value
+                    end,
+                    default = defaults.changeToLastSlotAfterCompanionUsageFromQuickSlots
+                },
                 {
                     type              = "checkbox",
                     name              = fcoSSLocVars["options_quickslots_change_with_active_bufffood"],
@@ -1020,7 +1052,7 @@ function FCOSS.buildAddonMenu()
                     setFunc           = function(value)
                         settings.quickSlotChangeToPVELast = value
                     end,
-                    disabled 			= function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) end,
+                    disabled 			= function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) end,
                     default = defaults.quickSlotChangeToPVELast
                 },
 
@@ -1039,7 +1071,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToPVE]],
-                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVELast end,
+                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVELast end,
                     reference = "FCOStarveStop_Settings_PvE_Select",
                 },
 
@@ -1058,7 +1090,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToDelvePVE]],
-                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVELast end,
+                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVELast end,
                     reference = "FCOStarveStop_Settings_Delve_PvE_Select",
                 },
 
@@ -1077,7 +1109,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToPublicDungeonPVE]],
-                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVELast end,
+                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVELast end,
                     reference = "FCOStarveStop_Settings_PublicDungeon_PvE_Select",
                 },
 
@@ -1096,7 +1128,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToGroupDungeonPVE]],
-                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVELast end,
+                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVELast end,
                     reference = "FCOStarveStop_Settings_GroupDungeon_PvE_Select",
                 },
 
@@ -1115,7 +1147,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToRaidDungeonPVE]],
-                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVELast end,
+                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVELast end,
                     reference = "FCOStarveStop_Settings_RaidDungeon_PvE_Select",
                 },
 
@@ -1132,7 +1164,7 @@ function FCOSS.buildAddonMenu()
                     setFunc           = function(value)
                         settings.quickSlotChangeToPVEInCombatLast = value
                     end,
-                    disabled 			= function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) end,
+                    disabled 			= function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) end,
                     default = defaults.quickSlotChangeToPVEInCombatLast
                 },
 
@@ -1151,7 +1183,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToPVEInCombat]],
-                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVEInCombatLast end,
+                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVEInCombatLast end,
                     reference = "FCOStarveStop_Settings_PvE_Combat_Select",
                 },
 
@@ -1170,7 +1202,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToDelvePVEInCombat]],
-                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVEInCombatLast end,
+                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVEInCombatLast end,
                     reference = "FCOStarveStop_Settings_Delve_PvE_Combat_Select",
                 },
 
@@ -1189,7 +1221,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToPublicDungeonPVEInCombat]],
-                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVEInCombatLast end,
+                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVEInCombatLast end,
                     reference = "FCOStarveStop_Settings_PublicDungeon_PvE_Combat_Select",
                 },
 
@@ -1208,7 +1240,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToGroupDungeonPVEInCombat]],
-                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVEInCombatLast end,
+                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVEInCombatLast end,
                     reference = "FCOStarveStop_Settings_GroupDungeon_PvE_Combat_Select",
                 },
 
@@ -1227,7 +1259,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToRaidDungeonPVEInCombat]],
-                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVEInCombatLast end,
+                    disabled = function() return not settings.quickSlotChangePVE or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVEInCombatLast end,
                     reference = "FCOStarveStop_Settings_RaidDungeon_PvE_Combat_Select",
                 },
 
@@ -1276,7 +1308,7 @@ function FCOSS.buildAddonMenu()
                     setFunc           = function(value)
                         settings.quickSlotChangeToPVPLast = value
                     end,
-                    disabled 			= function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) end,
+                    disabled 			= function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) end,
                     default = defaults.quickSlotChangeToPVPLast
                 },
 
@@ -1295,7 +1327,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToPVP]],
-                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVPLast end,
+                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVPLast end,
                     reference = "FCOStarveStop_Settings_PvP_Select",
                 },
 
@@ -1314,7 +1346,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToDelvePVP]],
-                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVPLast end,
+                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVPLast end,
                     reference = "FCOStarveStop_Settings_Delve_PvP_Select",
                 },
 
@@ -1333,7 +1365,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToPublicDungeonPVP]],
-                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVPLast end,
+                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVPLast end,
                     reference = "FCOStarveStop_Settings_PublicDungeon_PvP_Select",
                 },
 
@@ -1352,7 +1384,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToGroupDungeonPVP]],
-                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVPLast end,
+                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVPLast end,
                     reference = "FCOStarveStop_Settings_GroupDungeon_PvP_Select",
                 },
 
@@ -1371,7 +1403,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToRaidDungeonPVP]],
-                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVPLast end,
+                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVPLast end,
                     reference = "FCOStarveStop_Settings_RaidDungeon_PvP_Select",
                 },
 
@@ -1388,7 +1420,7 @@ function FCOSS.buildAddonMenu()
                     setFunc           = function(value)
                         settings.quickSlotChangeToPVPInCombatLast = value
                     end,
-                    disabled 			= function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) end,
+                    disabled 			= function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) end,
                     default = defaults.quickSlotChangeToPVPInCombatLast
                 },
 
@@ -1407,7 +1439,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToPVPInCombat]],
-                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVPInCombatLast end,
+                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVPInCombatLast end,
                     reference = "FCOStarveStop_Settings_PvP_Combat_Select",
                 },
 
@@ -1426,7 +1458,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToDelvePVPInCombat]],
-                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVPInCombatLast end,
+                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVPInCombatLast end,
                     reference = "FCOStarveStop_Settings_Delve_PvP_Combat_Select",
                 },
 
@@ -1445,7 +1477,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToPublicDungeonPVPInCombat]],
-                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVPInCombatLast end,
+                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVPInCombatLast end,
                     reference = "FCOStarveStop_Settings_PublicDungeon_PvP_Combat_Select",
                 },
 
@@ -1464,7 +1496,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToGroupDungeonPVPInCombat]],
-                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVPInCombatLast end,
+                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVPInCombatLast end,
                     reference = "FCOStarveStop_Settings_GroupDungeon_PvP_Combat_Select",
                 },
 
@@ -1483,7 +1515,7 @@ function FCOSS.buildAddonMenu()
                         end
                     end,
                     default = FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[settings.quickSlotChangeToRaidDungeonPVPInCombat]],
-                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and FCOSS.otherAddons.autoSlotSwitch["isLoaded"]) or settings.quickSlotChangeToPVPInCombatLast end,
+                    disabled = function() return not settings.quickSlotChangePVP or (settings.preferAutoSlotSwitch and isAutoSlotSwitchLoaded) or settings.quickSlotChangeToPVPInCombatLast end,
                     reference = "FCOStarveStop_Settings_RaidDungeon_PvP_Combat_Select",
                 },
 
@@ -1514,8 +1546,8 @@ function FCOSS.buildAddonMenu()
         end
     end
     --Register the callback for the LAM panel created function
-    CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened",    FCOSS_LAM_Opened)
-    CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed",    FCOSS_LAM_Closed)
+    CM:RegisterCallback("LAM-PanelOpened",    FCOSS_LAM_Opened)
+    CM:RegisterCallback("LAM-PanelClosed",    FCOSS_LAM_Closed)
 
     FCOSS.preventerVars.addonMenuBuild = true
 end

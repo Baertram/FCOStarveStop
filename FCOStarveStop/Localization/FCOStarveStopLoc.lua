@@ -212,7 +212,7 @@ FCOStarveStop.localizationVars.localizationAll = {
 
 		--Added with potion buff reminder
 		["options_potion_alert"]						=	"Show potion reminder",
-		["options_potion_alert_tooltip"]				=	"Show a reminder text/icon if you don't have any potion effect active",
+		["options_potion_alert_tooltip"]				=	"Show a reminder text/icon if you don't have any potion effect active.\n\nAttention: As of 2021-10 ZOs changed some buffs of the potions to generic buffs that other buffs also use. LibPotionBuff might not be able to identify it is a potion/not a potion now and thus this addon coudl show false positives, or not recognize the potion buffs at all!",
 		["options_header_food_buff"]					=	"Food buff",
 		["options_header_potion"]						=	"Potion",
 		["options_potion_text_alert_enabled"]			=	"Show text alert",
@@ -224,6 +224,9 @@ FCOStarveStop.localizationVars.localizationAll = {
         ["options_potion_alert_only_in_combat"]			=	"Only in combat",
         ["options_potion_alert_only_in_combat_tooltip"]	=	"Only show the potion alert if you are in combat",
         ["icon_tooltip_potion_text"]					=	"Drink a potion!",
+
+		["options_change_to_last_slot_after_companion_usage_from_qs"] = "Select last slot after companion (from QS)",
+		["options_change_to_last_slot_after_companion_usage_from_qs_tooltip"] = "Change to the last quicks slot again after you have spawned your companion via the quickslot wheel.",
     },
 
 	--German / Deutsch
@@ -424,7 +427,7 @@ FCOStarveStop.localizationVars.localizationAll = {
 
 		--Added with potion buff reminder
 		["options_potion_alert"]						=	"Zeige Trank Erinnerung",
-		["options_potion_alert_tooltip"]				=	"Zeigt einen Erinnerungstext/-symbol an wenn du keinen Trank effekt aktiv hast und einen Trank trinken kannst",
+		["options_potion_alert_tooltip"]				=	"Zeigt einen Erinnerungstext/-symbol an wenn du keinen Trank effekt aktiv hast und einen Trank trinken kannst.\n\.Achtung: Seit 10.2021 hat ZOs die Buffs der Tränke generisch geamcht so dass sich diese nun mit anderen Buffs die IDs teilen. Es ist daher nicht immer möglich Tränke Buffs eindeutig zu identifzieren. d.h. dieses addon könnte falsche Buffs als Tränke Buffs erkennen oder gar nicht richtig die Tränke erkennen.",
 		["options_header_food_buff"]					=	"Buff-Food",
 		["options_header_potion"]						=	"Trank",
 		["options_potion_text_alert_enabled"]			=	"Zeige Text Warnung",
@@ -436,6 +439,9 @@ FCOStarveStop.localizationVars.localizationAll = {
         ["options_potion_alert_only_in_combat"]			=	"Nur im Kampf",
         ["options_potion_alert_only_in_combat_tooltip"]	=	"Zeige die Trank Warnung nur im kampf an",
         ["icon_tooltip_potion_text"]					=	"Trinke einen Trank!",
+
+		["options_change_to_last_slot_after_companion_usage_from_qs"] = "Letzten Slot wählen, nach Gefährte holen (von QS)",
+		["options_change_to_last_slot_after_companion_usage_from_qs_tooltip"] = "Aktiviert den letzten Quicklslot wieder, nachdem der Gefährte über das Quickslot Rad gerufen wurde.",
     },
 
     --French / Französisch

@@ -1,10 +1,13 @@
 if FCOStarveStop == nil then FCOStarveStop = {} end
 local FCOSS = FCOStarveStop
+
+local EM = EVENT_MANAGER
+
 ------------------------------------------------------------------------------------------------------------
 -- Addon info
 ------------------------------------------------------------------------------------------------------------
 FCOSS.addonVars =  {}
-FCOSS.addonVars.addonRealVersion		= 0.91
+FCOSS.addonVars.addonRealVersion		= 0.94
 FCOSS.addonVars.addonSavedVarsVersion	= 0.4
 FCOSS.addonVars.addonName				= "FCOStarveStop"
 FCOSS.addonVars.addonSavedVars			= "FCOStarveStop_Settings"
@@ -12,15 +15,13 @@ FCOSS.addonVars.settingsName   			= "FCO StarveStop"
 FCOSS.addonVars.settingsDisplayName   	= "|c00FF00FCO |cFFFF00 StarveStop|r"
 FCOSS.addonVars.addonAuthor				= "Baertram"
 FCOSS.addonVars.addonWebsite			= "http://www.esoui.com/downloads/info1291-FCOStarveStop.html#info"
+local addonName = FCOSS.addonVars.addonName
 
 ------------------------------------------------------------------------------------------------------------
 -- Libraries
 ------------------------------------------------------------------------------------------------------------
---libLoadedAddons
-local LIBLA = LibLoadedAddons
-FCOSS.libLA = LIBLA
 --LibFoodDrinkBuff
-local libFDB = LIB_FOOD_DRINK_BUFF
+local libFDB = LibFoodDrinkBuff or LIB_FOOD_DRINK_BUFF
 FCOSS.libFDB = libFDB
 --LibPotionBuff
 local libPB = LibPotionBuff
@@ -28,9 +29,52 @@ FCOSS.libPB = libPB
 --LibAddonMenu-2.0
 FCOSS.addonMenu = LibAddonMenu2
 
+
+local quickslotBarIndexMin = ACTION_BAR_FIRST_UTILITY_BAR_SLOT + 1
+--local quickslotBarIndexMax = ACTION_BAR_FIRST_UTILITY_BAR_SLOT + ACTION_BAR_UTILITY_BAR_SIZE
+
+
 local function FCOSS_addonLoaded(evetName, addon)
-	if addon ~= FCOSS.addonVars.addonName then return end
-	EVENT_MANAGER:UnregisterForEvent(evetName)
+	if addon ~= addonName then return end
+	EM:UnregisterForEvent(evetName)
+
+	--Save the last selected quickslot before it get changed
+	ZO_PreHook(QUICKSLOT_RADIAL_KEYBOARD, "PopulateMenu", function()
+		FCOSS.lastSelectedQuickslot = GetCurrentQuickslot()	--QUICKSLOT_RADIAL_KEYBOARD.selectedSlotNum
+--d("[FCOSS]lastSelectedQuickslot: " ..tostring(FCOSS.lastSelectedQuickslot))
+	end)
+	--Check if quickslot was used, and a collectible was used, and if it was a companion
+	--ZO_PreHook("ZO_ActionBar_CanUseActionSlots", function()
+	SecurePostHook("ZO_ActionBar_OnActionButtonUp", function(slotNum)
+--d("[FCOSS]ZO_ActionBar_OnActionButtonUp - slotNum" ..tostring(slotNum))
+		--local debugTraceBackStr = debug.traceback() --ATTENTION: Willpause the thread to generate the stack! So better not doing this
+		--if not debugTraceBackStr then return end
+		--local slotNum = tonumber(debugTraceBackStr:match('keybind = "ACTION_BUTTON_(%d)'))
+		if slotNum and slotNum == quickslotBarIndexMin then --Is the QuickSlot actionButton (slot)
+			local currentQuickslot = GetCurrentQuickslot()
+--d(">currentQuickslot: " ..tostring(currentQuickslot))
+			if currentQuickslot == nil then return end
+			local slotType = GetSlotType(currentQuickslot)
+--d(">slotType: " ..tostring(slotType) .. "/" ..tostring(ACTION_TYPE_COLLECTIBLE))
+			if slotType ~= ACTION_TYPE_COLLECTIBLE then return end
+--d(">>collectible was used from quickslot" ..tostring(slotNum))
+			--Check if collectible used is a companion
+			--Get the collectibleId
+			local qsItemLink = GetSlotItemLink(currentQuickslot)
+			if not qsItemLink then return end
+			local collectibleId = GetCollectibleIdFromLink(qsItemLink)
+--d(">>collectibleId for " .. qsItemLink .. ": " ..tostring(collectibleId))
+			if not collectibleId then return end
+			--Detect the collectible category of the ID
+			local collectibleCategory = GetCollectibleCategoryType(collectibleId)
+--d(">>collectibleCategory: " ..tostring(collectibleCategory) .. "/companion: " .. tostring(COLLECTIBLE_CATEGORY_TYPE_COMPANION))
+			if not collectibleCategory or collectibleCategory ~= COLLECTIBLE_CATEGORY_TYPE_COMPANION then return end
+
+			zo_callLater(function()
+				FCOSS.activateLastQuickslot()
+			end, 100)
+		end
+	end)
 
     --Check if any other dependent/similar addon is active
     FCOSS.checkIfOtherAddonsAreActive()
@@ -94,14 +138,11 @@ local function FCOSS_addonLoaded(evetName, addon)
 
     -- Register slash commands
 	FCOSS.RegisterSlashCommands()
-
-	-- Registers addon to loadedAddon library
-	LIBLA:RegisterAddon(FCOSS.addonVars.addonName, FCOSS.addonVars.addonRealVersion)
 end
 
 --Addon initialization
 function FCOSS.initialize()
-	EVENT_MANAGER:RegisterForEvent(FCOSS.addonVars.addonName, EVENT_ADD_ON_LOADED, FCOSS_addonLoaded)
+	EM:RegisterForEvent(addonName, EVENT_ADD_ON_LOADED, FCOSS_addonLoaded)
 end
 
 --Starting the addon

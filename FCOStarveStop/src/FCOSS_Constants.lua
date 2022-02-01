@@ -60,10 +60,8 @@ FCOSS.preventerVars.hidePotionAlertIcon = false
 --Other addons
 FCOSS.otherAddons						= {}
 FCOSS.otherAddons.autoSlotSwitch		= {
-    ["name"]		=	"AutoSlotSwitch",
-    ["version"]		=	0.54,
-    ["isLoaded"]	=	false,
-    ["lastNonCombatQuickslot"] = -1,
+    ["isLoaded"]	            =	false,
+    ["lastNonCombatQuickslot"]  = -1,
 }
 
 --Count/Numbers off...

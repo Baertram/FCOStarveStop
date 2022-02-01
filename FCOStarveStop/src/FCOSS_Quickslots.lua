@@ -202,6 +202,13 @@ function FCOSS.changeQuickslots(insideCombat, buffFoodAlert)
     end
 end
 
+--Change back to the quickslot saved before (e.g. before companion was spawned from quickslots wheel)
+function FCOSS.activateLastQuickslot()
+    local quickSlotBefore = FCOSS.lastSelectedQuickslot
+    if quickSlotBefore == nil or GetCurrentQuickslot() == quickSlotBefore then return end
+    SetCurrentQuickslot(quickSlotBefore)
+    quickSlotBefore = nil
+end
 
 --Function to check if the active quickslot is a potion and change to the wanted potion quickslot if it's not a potion
 function FCOSS.checkActiveQuickSlotIsPotionAndChangeToPotionIfNeeded()

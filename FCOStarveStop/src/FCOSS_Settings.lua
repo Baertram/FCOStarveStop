@@ -144,6 +144,7 @@ function FCOSS.loadSettings()
         quickSlotChangeToFoodBuffInCombat = false,
 
         preferAutoSlotSwitch = false,
+        changeToLastSlotAfterCompanionUsageFromQuickSlots = false,
     }
 
     --=============================================================================================================
@@ -156,13 +157,11 @@ function FCOSS.loadSettings()
 
     --Check, by help of basic version 999 settings, if the settings should be loaded for each character or account wide
     --Use the current addon version to read the settings now
-    if (FCOSS.settingsVars.defaultSettings.saveMode == 1) then
+    if FCOSS.settingsVars.defaultSettings.saveMode == 1 then
         FCOSS.settingsVars.settings = ZO_SavedVars:NewCharacterIdSettings(addonVars.addonSavedVars, addonVars.addonSavedVarsVersion , "Settings", defaults)
         --Transfer the data from the name to the unique ID SavedVars now
         NamesToIDSavedVars()
 
-    elseif (FCOSS.settingsVars.defaultSettings.saveMode == 2) then
-        FCOSS.settingsVars.settings = ZO_SavedVars:NewAccountWide(addonVars.addonSavedVars, addonVars.addonSavedVarsVersion, "Settings", defaults)
     else
         FCOSS.settingsVars.settings = ZO_SavedVars:NewAccountWide(addonVars.addonSavedVars, addonVars.addonSavedVarsVersion, "Settings", defaults)
     end
