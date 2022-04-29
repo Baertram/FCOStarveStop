@@ -1,21 +1,14 @@
 if FCOStarveStop == nil then FCOStarveStop = {} end
 local FCOSS = FCOStarveStop
 
-local EM = EVENT_MANAGER
+local addonVars = FCOSS.addonVars
+local addonName = addonVars.addonName
 
-------------------------------------------------------------------------------------------------------------
--- Addon info
-------------------------------------------------------------------------------------------------------------
-FCOSS.addonVars =  {}
-FCOSS.addonVars.addonRealVersion		= 0.95
-FCOSS.addonVars.addonSavedVarsVersion	= 0.4
-FCOSS.addonVars.addonName				= "FCOStarveStop"
-FCOSS.addonVars.addonSavedVars			= "FCOStarveStop_Settings"
-FCOSS.addonVars.settingsName   			= "FCO StarveStop"
-FCOSS.addonVars.settingsDisplayName   	= "|c00FF00FCO |cFFFF00 StarveStop|r"
-FCOSS.addonVars.addonAuthor				= "Baertram"
-FCOSS.addonVars.addonWebsite			= "http://www.esoui.com/downloads/info1291-FCOStarveStop.html#info"
-local addonName = FCOSS.addonVars.addonName
+local EM = EVENT_MANAGER
+--local quickslotsNew = FCOSS.quickslotsNew
+local quickSlotWheel = FCOSS.quickslotWheelVar
+local quickSlotsActionButtonIndex = FCOSS.quickSlotsActionButtonIndex
+
 
 ------------------------------------------------------------------------------------------------------------
 -- Libraries
@@ -30,18 +23,15 @@ FCOSS.libPB = libPB
 FCOSS.addonMenu = LibAddonMenu2
 
 
-local quickslotBarIndexMin = ((UTILITY_WHEEL_KEYBOARD ~= nil and 1) or (ACTION_BAR_UTILITY_BAR_SIZE + 1)) --8+1
 --local quickslotBarIndexMax = ACTION_BAR_FIRST_UTILITY_BAR_SLOT + ACTION_BAR_UTILITY_BAR_SIZE
 --ACTION_BAR_FIRST_NORMAL_SLOT_INDEX
 
-local function FCOSS_addonLoaded(evetName, addon)
-	if addon ~= addonName then return end
+local function FCOSS_addonLoaded(evetName, addonNameOfAddonLoaded)
+	if addonNameOfAddonLoaded ~= addonName then return end
 	EM:UnregisterForEvent(evetName)
 
-	--Save the last selected quickslot before it get changed
-	local quickslotWheelObject = (UTILITY_WHEEL_KEYBOARD ~= nil and UTILITY_WHEEL_KEYBOARD) or QUICKSLOT_RADIAL_KEYBOARD
-
-	ZO_PreHook(quickslotWheelObject, "PopulateMenu", function()
+	--Save the last selected quickslot before it gets changed
+	ZO_PreHook(quickSlotWheel, "PopulateMenu", function()
 		FCOSS.lastSelectedQuickslot = GetCurrentQuickslot()	--QUICKSLOT_RADIAL_KEYBOARD.selectedSlotNum
 		--d("[FCOSS]lastSelectedQuickslot: " ..tostring(FCOSS.lastSelectedQuickslot))
 	end)
@@ -52,7 +42,7 @@ local function FCOSS_addonLoaded(evetName, addon)
 		--local debugTraceBackStr = debug.traceback() --ATTENTION: Willpause the thread to generate the stack! So better not doing this
 		--if not debugTraceBackStr then return end
 		--local slotNum = tonumber(debugTraceBackStr:match('keybind = "ACTION_BUTTON_(%d)'))
-		if slotNum ~= nil and slotNum == quickslotBarIndexMin then --Is the QuickSlot actionButton (slot)
+		if slotNum ~= nil and slotNum == quickSlotsActionButtonIndex then --Is the QuickSlot actionButton (slot)
 			local currentQuickslot = GetCurrentQuickslot()
 		--d(">currentQuickslot: " ..tostring(currentQuickslot))
 			if currentQuickslot == nil then return end

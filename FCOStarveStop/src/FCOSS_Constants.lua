@@ -1,6 +1,21 @@
 if FCOStarveStop == nil then FCOStarveStop = {} end
 local FCOSS = FCOStarveStop
 
+
+------------------------------------------------------------------------------------------------------------
+-- Addon info
+------------------------------------------------------------------------------------------------------------
+FCOSS.addonVars =  {}
+FCOSS.addonVars.addonRealVersion		= 0.95
+FCOSS.addonVars.addonSavedVarsVersion	= 0.4
+FCOSS.addonVars.addonName				= "FCOStarveStop"
+FCOSS.addonVars.addonSavedVars			= "FCOStarveStop_Settings"
+FCOSS.addonVars.settingsName   			= "FCO StarveStop"
+FCOSS.addonVars.settingsDisplayName   	= "|c00FF00FCO |cFFFF00 StarveStop|r"
+FCOSS.addonVars.addonAuthor				= "Baertram"
+FCOSS.addonVars.addonWebsite			= "http://www.esoui.com/downloads/info1291-FCOStarveStop.html#info"
+
+
 ------------------------------------------------------------------------------------------------------------
 -- Constants & variables
 ------------------------------------------------------------------------------------------------------------
@@ -31,8 +46,12 @@ FCOSS.quickSlotsMapping		= {}
 
 --Are we at the new quickslots introduced wit API101034 High Isle (Multi quickslot wheels)
 local quickslotsNew                         = (QUICKSLOT_KEYBOARD ~= nil and true) or false
+FCOSS.quickslotsNew                         = quickslotsNew
+FCOSS.quickSlotsActionButtonIndex           = (quickslotsNew and 1) or (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) --8+1
 local quickslotKeyboard                     = (quickslotsNew and QUICKSLOT_KEYBOARD) or QUICKSLOT_WINDOW
 FCOSS.quickslotVar = quickslotKeyboard
+local quickSlotWheel                        = (quickslotsNew and UTILITY_WHEEL_KEYBOARD) or QUICKSLOT_RADIAL_KEYBOARD
+FCOSS.quickslotWheelVar = quickSlotWheel
 
 local EMPTY_QUICKSLOT_TEXTURE               = "/esoui/art/quickslots/quickslot_emptyslot.dds"
 FCOSS.EMPTY_QUICKSLOT_TEXTURE               = EMPTY_QUICKSLOT_TEXTURE

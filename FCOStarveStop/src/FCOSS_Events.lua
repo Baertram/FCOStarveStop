@@ -1,6 +1,14 @@
 if FCOStarveStop == nil then FCOStarveStop = {} end
 local FCOSS = FCOStarveStop
 
+local EM = EVENT_MANAGER
+
+local addonVars = FCOSS.addonVars
+local addonName = addonVars.addonName
+
+--local quickslotsNew = FCOSS.quickslotsNew
+local quickSlotsActionButtonIndex = FCOSS.quickSlotsActionButtonIndex
+
 ------------------------------------------------------------------------------------------------------------
 -- Event callback functions
 ------------------------------------------------------------------------------------------------------------
@@ -207,9 +215,9 @@ function FCOSS.OnEventActionSlotUsed(eventCode, slotNum)
     prevVars.ultimateAbility["NoChatOutput"] = false
     prevVars.ultimateAbility["AbilityId"] = nil
     --Is the slot number the last one = Ultimate skill?
-    if slotNum == (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) then   --ACTION_BAR_UTILITY_BAR_SIZE then
+    if slotNum == quickSlotsActionButtonIndex then   --ACTION_BAR_UTILITY_BAR_SIZE then
         --get the ability ID
-        local abiltyId = GetSlotBoundId(slotNum)
+        local abiltyId = GetSlotBoundId(slotNum, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
         --Check if ability ID is on the blacklist
         local excludedUltimates = FCOSS.buffAbilityIds.ultimatesExcluded
         local isNotWantedUltimate = excludedUltimates[abiltyId] or false
@@ -237,7 +245,7 @@ function FCOSS.OnEventLockpickEnded(eventName)
     FCOSS.preventerVars.lockpickWasDone = false
 
     --UnRegister for the lockpicking end events again
-    EVENT_MANAGER:UnregisterForEvent(eventName)
+    EM:UnregisterForEvent(eventName)
 end
 
 --Lockpicking begins
@@ -253,8 +261,8 @@ function FCOSS.OnEventBeginLockpick(...)
     FCOSS.setupWarningBeforeExpirationRepeat(true, nil, nil, nil, nil, nil, nil)
 
     --Register for the lockpicking end events
-    EVENT_MANAGER:RegisterForEvent(FCOSS.addonVars.addonName, EVENT_LOCKPICK_FAILED, FCOSS.OnEventLockpickEnded)
-    EVENT_MANAGER:RegisterForEvent(FCOSS.addonVars.addonName, EVENT_LOCKPICK_SUCCESS, FCOSS.OnEventLockpickEnded)
+    EM:RegisterForEvent(addonName, EVENT_LOCKPICK_FAILED, FCOSS.OnEventLockpickEnded)
+    EM:RegisterForEvent(addonName, EVENT_LOCKPICK_SUCCESS, FCOSS.OnEventLockpickEnded)
 end
 
 
@@ -262,27 +270,26 @@ end
 -- Event loading
 ------------------------------------------------------------------------------------------------------------
 function FCOSS.loadEvents()
-    local addonVars = FCOSS.addonVars
     --Register for the effect changed event for food and drink buffs!
     local libFDB = FCOSS.libFDB
     --lib:RegisterAbilityIdsFilterOnEventEffectChanged(addonEventNameSpace, callbackFunc, filterType, filterParameter)
-    local wasEffectChangedEventLoaded = libFDB:RegisterAbilityIdsFilterOnEventEffectChanged(addonVars.addonName .. "_FoodDrink", FCOSS.OnEventEffectChanged, REGISTER_FILTER_UNIT_TAG, "player")
+    local wasEffectChangedEventLoaded = libFDB:RegisterAbilityIdsFilterOnEventEffectChanged(addonName .. "_FoodDrink", FCOSS.OnEventEffectChanged, REGISTER_FILTER_UNIT_TAG, "player")
     if not wasEffectChangedEventLoaded then d("[FCOStarveStop] Addon EVENT_EFFECT_CHANGED for food/drink not loaded. Addon will not work properly!") return end
     --Register for the effect changed event for potion buff!
     local libPB = FCOSS.libPB
     --lib:RegisterAbilityIdsFilterOnEventEffectChanged(addonEventNameSpace, callbackFunc, filterType, filterParameter)
-    local wasPotionEffectChangedEventLoaded = libPB:RegisterAbilityIdsFilterOnEventEffectChanged(addonVars.addonName .. "_Potion", FCOSS.OnEventEffectChanged, REGISTER_FILTER_UNIT_TAG, "player")
+    local wasPotionEffectChangedEventLoaded = libPB:RegisterAbilityIdsFilterOnEventEffectChanged(addonName .. "_Potion", FCOSS.OnEventEffectChanged, REGISTER_FILTER_UNIT_TAG, "player")
     if not wasPotionEffectChangedEventLoaded then d("[FCOStarveStop] Addon EVENT_EFFECT_CHANGED for potions not loaded. Addon will not work properly!") return end
-    --EVENT_MANAGER:RegisterForEvent(addonVars.addonName .. "_EventEffectChangedPotion", EVENT_EFFECT_CHANGED, FCOSS.OnEventEffectChanged)
-    --EVENT_MANAGER:AddFilterForEvent(addonVars.addonName .. "_EventEffectChangedPotion", EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "player")
+    --EM:RegisterForEvent(addonName .. "_EventEffectChangedPotion", EVENT_EFFECT_CHANGED, FCOSS.OnEventEffectChanged)
+    --EM:AddFilterForEvent(addonName .. "_EventEffectChangedPotion", EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "player")
     --Register for the zone change/player ready event
-    EVENT_MANAGER:RegisterForEvent(addonVars.addonName, EVENT_PLAYER_ACTIVATED,             FCOSS.OnEventPlayer_Activated)
+    EM:RegisterForEvent(addonName, EVENT_PLAYER_ACTIVATED,             FCOSS.OnEventPlayer_Activated)
     --Register callback function if the weapon bars change
-    EVENT_MANAGER:RegisterForEvent(addonVars.addonName, EVENT_ACTIVE_WEAPON_PAIR_CHANGED,   FCOSS.OnEventActiveWeaponPairChanged)
+    EM:RegisterForEvent(addonName, EVENT_ACTIVE_WEAPON_PAIR_CHANGED,   FCOSS.OnEventActiveWeaponPairChanged)
     --Register callback function if you get into combat
-    EVENT_MANAGER:RegisterForEvent(addonVars.addonName, EVENT_PLAYER_COMBAT_STATE,          FCOSS.OnEventPlayerCombatState)
+    EM:RegisterForEvent(addonName, EVENT_PLAYER_COMBAT_STATE,          FCOSS.OnEventPlayerCombatState)
     --Register callback function if you change the action slots
-    EVENT_MANAGER:RegisterForEvent(addonVars.addonName, EVENT_ACTION_SLOT_ABILITY_USED,     FCOSS.OnEventActionSlotUsed)
+    EM:RegisterForEvent(addonName, EVENT_ACTION_SLOT_ABILITY_USED,     FCOSS.OnEventActionSlotUsed)
     --Register the events for lockpicking
-    EVENT_MANAGER:RegisterForEvent(addonVars.addonName, EVENT_BEGIN_LOCKPICK,               FCOSS.OnEventBeginLockpick)
+    EM:RegisterForEvent(addonName, EVENT_BEGIN_LOCKPICK,               FCOSS.OnEventBeginLockpick)
 end

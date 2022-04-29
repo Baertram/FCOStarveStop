@@ -146,16 +146,18 @@ function FCOSS.buildAddonMenu()
 
             --Show tooltips in LAM2's dropdown menus, if the dropdown box is allowed
             ZO_PreHook("ZO_Menu_SetSelectedIndex", function(index)
+--d("ZO_Menu_SetSelectedIndex - FCOSS.activeDropdown: " ..tostring(FCOSS.activeDropdown:GetName()))
                 if(not FCOSS.activeDropdown) then return end
                 ClearTooltip(ItemTooltip)
                 if(not index or not ZO_Menu.items) then return end
-
+--d(">1")
                 index = zo_max(zo_min(index, #ZO_Menu.items), 1)
+--d(">index: " ..tostring(index))
 
-                local qsItemLink = GetSlotItemLink(FCOSS.quickSlotsMapping[index])
+                local qsItemLink = GetSlotItemLink(FCOSS.quickSlotsMapping[index], HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
                 if qsItemLink ~= "" then
                     local mouseOverControl = WINDOW_MANAGER:GetMouseOverControl()
-                    if not mouseOverControl then return fals end
+                    if not mouseOverControl then return false end
                     InitializeTooltip(ItemTooltip, mouseOverControl, TOPLEFT, 0, 0, BOTTOMRIGHT)
                     ItemTooltip:SetLink(qsItemLink)
                     ItemTooltipTopLevel:BringWindowToTop()

@@ -1,6 +1,8 @@
 if FCOStarveStop == nil then FCOStarveStop = {} end
 local FCOSS = FCOStarveStop
 
+local quickslotsNew = FCOSS.quickslotsNew
+--local quickSlotsActionButtonIndex = FCOSS.quickSlotsActionButtonIndex
 local quickslotKeyboard = FCOSS.quickslotVar
 local EMPTY_QUICKSLOT_TEXTURE = FCOSS.EMPTY_QUICKSLOT_TEXTURE
 
@@ -234,7 +236,7 @@ function FCOSS.checkActiveQuickSlotIsPotionAndChangeToPotionIfNeeded()
         end
         if qsNameText ~= "" then retPotionName = qsNameText end
         --Get the quickslot texture
-        local qsIconPath = GetSlotTexture(currentQuickSlot)
+        local qsIconPath = GetSlotTexture(currentQuickSlot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
         if not qsIconPath or qsIconPath == "" then qsIconPath = EMPTY_QUICKSLOT_TEXTURE
         else
             --Put the quickslot's texture into the string
@@ -246,10 +248,7 @@ end
 
 function FCOSS.GetQuickslots()
     if not quickslotKeyboard then return end
-    local quickslotsSlots = quickslotKeyboard.quickSlots
-    if quickslotsSlots == nil then
-        quickslotsSlots = quickslotKeyboard.wheel and quickslotKeyboard.wheel.slots
-    end
+    local quickslotsSlots = (quickslotsNew and quickslotKeyboard.wheel and quickslotKeyboard.wheel.slots) or quickslotKeyboard.quickSlots
     if quickslotsSlots == nil then return end
 
     local qsTable = {}
