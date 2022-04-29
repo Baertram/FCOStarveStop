@@ -27,10 +27,19 @@ FCOSS.addonMenu.isShown = false
 FCOSS.quickslotSelectIconSize = 24
 FCOSS.quickSlots			= {}
 FCOSS.quickSlotsMapping		= {}
-local EMPTY_QUICKSLOT_STRING = GetString(SI_QUICKSLOTS_EMPTY)
-local EMPTY_QUICKSLOT_TEXTURE = "EsoUI/Art/Quickslots/quickslot_emptySlot.dds"
-FCOSS.quickSlotEmptyText = EMPTY_QUICKSLOT_STRING
-FCOSS.quickSlotEmptyText = zo_iconTextFormat(EMPTY_QUICKSLOT_TEXTURE, FCOSS.quickslotSelectIconSize, FCOSS.quickslotSelectIconSize, FCOSS.quickSlotEmptyText)
+
+
+--Are we at the new quickslots introduced wit API101034 High Isle (Multi quickslot wheels)
+local quickslotsNew                         = (QUICKSLOT_KEYBOARD ~= nil and true) or false
+local quickslotKeyboard                     = (quickslotsNew and QUICKSLOT_KEYBOARD) or QUICKSLOT_WINDOW
+FCOSS.quickslotVar = quickslotKeyboard
+
+local EMPTY_QUICKSLOT_TEXTURE               = "/esoui/art/quickslots/quickslot_emptyslot.dds"
+FCOSS.EMPTY_QUICKSLOT_TEXTURE               = EMPTY_QUICKSLOT_TEXTURE
+local EMPTY_QUICKSLOT_STRING                = GetString(SI_QUICKSLOTS_EMPTY)
+FCOSS.quickSlotEmptyText                    = EMPTY_QUICKSLOT_STRING
+FCOSS.quickSlotEmptyText                    = zo_iconTextFormat(EMPTY_QUICKSLOT_TEXTURE, FCOSS.quickslotSelectIconSize, FCOSS.quickslotSelectIconSize, EMPTY_QUICKSLOT_STRING)
+
 
 --Preventing other stuff
 FCOSS.preventerVars						= {}

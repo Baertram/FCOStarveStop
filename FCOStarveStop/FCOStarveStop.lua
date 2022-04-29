@@ -7,7 +7,7 @@ local EM = EVENT_MANAGER
 -- Addon info
 ------------------------------------------------------------------------------------------------------------
 FCOSS.addonVars =  {}
-FCOSS.addonVars.addonRealVersion		= 0.94
+FCOSS.addonVars.addonRealVersion		= 0.95
 FCOSS.addonVars.addonSavedVarsVersion	= 0.4
 FCOSS.addonVars.addonName				= "FCOStarveStop"
 FCOSS.addonVars.addonSavedVars			= "FCOStarveStop_Settings"
@@ -30,44 +30,46 @@ FCOSS.libPB = libPB
 FCOSS.addonMenu = LibAddonMenu2
 
 
-local quickslotBarIndexMin = ACTION_BAR_FIRST_UTILITY_BAR_SLOT + 1
+local quickslotBarIndexMin = ((UTILITY_WHEEL_KEYBOARD ~= nil and 1) or (ACTION_BAR_UTILITY_BAR_SIZE + 1)) --8+1
 --local quickslotBarIndexMax = ACTION_BAR_FIRST_UTILITY_BAR_SLOT + ACTION_BAR_UTILITY_BAR_SIZE
-
+--ACTION_BAR_FIRST_NORMAL_SLOT_INDEX
 
 local function FCOSS_addonLoaded(evetName, addon)
 	if addon ~= addonName then return end
 	EM:UnregisterForEvent(evetName)
 
 	--Save the last selected quickslot before it get changed
-	ZO_PreHook(QUICKSLOT_RADIAL_KEYBOARD, "PopulateMenu", function()
+	local quickslotWheelObject = (UTILITY_WHEEL_KEYBOARD ~= nil and UTILITY_WHEEL_KEYBOARD) or QUICKSLOT_RADIAL_KEYBOARD
+
+	ZO_PreHook(quickslotWheelObject, "PopulateMenu", function()
 		FCOSS.lastSelectedQuickslot = GetCurrentQuickslot()	--QUICKSLOT_RADIAL_KEYBOARD.selectedSlotNum
---d("[FCOSS]lastSelectedQuickslot: " ..tostring(FCOSS.lastSelectedQuickslot))
+		--d("[FCOSS]lastSelectedQuickslot: " ..tostring(FCOSS.lastSelectedQuickslot))
 	end)
 	--Check if quickslot was used, and a collectible was used, and if it was a companion
 	--ZO_PreHook("ZO_ActionBar_CanUseActionSlots", function()
 	SecurePostHook("ZO_ActionBar_OnActionButtonUp", function(slotNum)
---d("[FCOSS]ZO_ActionBar_OnActionButtonUp - slotNum" ..tostring(slotNum))
+		--d("[FCOSS]ZO_ActionBar_OnActionButtonUp - slotNum " ..tostring(slotNum))
 		--local debugTraceBackStr = debug.traceback() --ATTENTION: Willpause the thread to generate the stack! So better not doing this
 		--if not debugTraceBackStr then return end
 		--local slotNum = tonumber(debugTraceBackStr:match('keybind = "ACTION_BUTTON_(%d)'))
-		if slotNum and slotNum == quickslotBarIndexMin then --Is the QuickSlot actionButton (slot)
+		if slotNum ~= nil and slotNum == quickslotBarIndexMin then --Is the QuickSlot actionButton (slot)
 			local currentQuickslot = GetCurrentQuickslot()
---d(">currentQuickslot: " ..tostring(currentQuickslot))
+		--d(">currentQuickslot: " ..tostring(currentQuickslot))
 			if currentQuickslot == nil then return end
-			local slotType = GetSlotType(currentQuickslot)
---d(">slotType: " ..tostring(slotType) .. "/" ..tostring(ACTION_TYPE_COLLECTIBLE))
+			local slotType = GetSlotType(currentQuickslot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+		--d(">slotType: " ..tostring(slotType) .. "/" ..tostring(ACTION_TYPE_COLLECTIBLE))
 			if slotType ~= ACTION_TYPE_COLLECTIBLE then return end
---d(">>collectible was used from quickslot" ..tostring(slotNum))
+		--d(">>collectible was used from quickslot" ..tostring(slotNum))
 			--Check if collectible used is a companion
 			--Get the collectibleId
-			local qsItemLink = GetSlotItemLink(currentQuickslot)
+			local qsItemLink = GetSlotItemLink(currentQuickslot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
 			if not qsItemLink then return end
 			local collectibleId = GetCollectibleIdFromLink(qsItemLink)
---d(">>collectibleId for " .. qsItemLink .. ": " ..tostring(collectibleId))
+		--d(">>collectibleId for " .. qsItemLink .. ": " ..tostring(collectibleId))
 			if not collectibleId then return end
 			--Detect the collectible category of the ID
 			local collectibleCategory = GetCollectibleCategoryType(collectibleId)
---d(">>collectibleCategory: " ..tostring(collectibleCategory) .. "/companion: " .. tostring(COLLECTIBLE_CATEGORY_TYPE_COMPANION))
+		--d(">>collectibleCategory: " ..tostring(collectibleCategory) .. "/companion: " .. tostring(COLLECTIBLE_CATEGORY_TYPE_COMPANION))
 			if not collectibleCategory or collectibleCategory ~= COLLECTIBLE_CATEGORY_TYPE_COMPANION then return end
 
 			zo_callLater(function()
@@ -76,67 +78,67 @@ local function FCOSS_addonLoaded(evetName, addon)
 		end
 	end)
 
-    --Check if any other dependent/similar addon is active
-    FCOSS.checkIfOtherAddonsAreActive()
+	--Check if any other dependent/similar addon is active
+	FCOSS.checkIfOtherAddonsAreActive()
 
-    --Load the SavedVariables settings
-    FCOSS.loadSettings()
+	--Load the SavedVariables settings
+	FCOSS.loadSettings()
 
-    --Deactivate debugging again
+	--Deactivate debugging again
 	FCOSS.debug = false
 
 	-- Set Localization
 	FCOSS.preventerVars.KeyBindingTexts = false
-    FCOSS.Localization()
+	FCOSS.Localization()
 
-    --Initialize the food and drink buff ability ID names (description texts) for the current active client language
+	--Initialize the food and drink buff ability ID names (description texts) for the current active client language
 	--FCOSS.getFoodBuffNames(false) --> Using library libFoodDrinkBuffs now
 
-    local settings = FCOSS.settingsVars.settings
-    local defaults = FCOSS.settingsVars.defaults
-    --Update some localized settings now
-    if not settings.textAlertGeneralChanged and settings.textAlertGeneral == defaults["textAlertGeneral"] and FCOSS.localizationVars.fco_ss_loc["icon_tooltip_text"] ~= "" then
-    	settings.textAlertGeneral = FCOSS.localizationVars.fco_ss_loc["icon_tooltip_text"]
-    end
-    if not settings.textAlertGeneralChangedPotion and settings.textAlertGeneralPotion == defaults["textAlertGeneralPotion"] and FCOSS.localizationVars.fco_ss_loc["icon_tooltip_potion_text"] ~= "" then
-    	settings.textAlertGeneralPotion = FCOSS.localizationVars.fco_ss_loc["icon_tooltip_potion_text"]
-    end
+	local settings = FCOSS.settingsVars.settings
+	local defaults = FCOSS.settingsVars.defaults
+	--Update some localized settings now
+	if not settings.textAlertGeneralChanged and settings.textAlertGeneral == defaults["textAlertGeneral"] and FCOSS.localizationVars.fco_ss_loc["icon_tooltip_text"] ~= "" then
+		settings.textAlertGeneral = FCOSS.localizationVars.fco_ss_loc["icon_tooltip_text"]
+	end
+	if not settings.textAlertGeneralChangedPotion and settings.textAlertGeneralPotion == defaults["textAlertGeneralPotion"] and FCOSS.localizationVars.fco_ss_loc["icon_tooltip_potion_text"] ~= "" then
+		settings.textAlertGeneralPotion = FCOSS.localizationVars.fco_ss_loc["icon_tooltip_potion_text"]
+	end
 
-    --Load the eevent callback functions
-    FCOSS.loadEvents()
+	--Load the eevent callback functions
+	FCOSS.loadEvents()
 
-    --Create the alert icon control
+	--Create the alert icon control
 	FCOSS.createAlertIcons()
 
 	--Add a fragment for the food buff icon container to the HUD and HUD_UD scenes
-    --so the icon can be shown/hidden
+	--so the icon can be shown/hidden
 	local fragmentFood = ZO_HUDFadeSceneFragment:New(FCOStarveStopContainer, nil, 0)
 	HUD_SCENE:AddFragment(fragmentFood)
 	HUD_UI_SCENE:AddFragment(fragmentFood)
 	--Add a fragment for the potion icon container to the HUD and HUD_UD scenes
-    --so the icon can be shown/hidden
+	--so the icon can be shown/hidden
 	local fragmentPotion = ZO_HUDFadeSceneFragment:New(FCOStarveStopContainerPotion, nil, 0)
 	HUD_SCENE:AddFragment(fragmentPotion)
 	HUD_UI_SCENE:AddFragment(fragmentPotion)
 	--Callback function for HUD scene
-    HUD_SCENE:RegisterCallback("StateChange", function(oldState, newState)
+	HUD_SCENE:RegisterCallback("StateChange", function(oldState, newState)
 		if newState == SCENE_SHOWING then
 			zo_callLater(function()
 				if not FCOSS.alertIcon:IsHidden() and FCOSS.alertIcon.hideNow then
 					FCOSS.alertIcon.hideNow = false
-		    		FCOStarveStopContainer:SetHidden(true)
-			    	FCOSS.alertIcon:SetHidden(true)
-			    end
+					FCOStarveStopContainer:SetHidden(true)
+					FCOSS.alertIcon:SetHidden(true)
+				end
 				if not FCOSS.alertIconPotion:IsHidden() and FCOSS.alertIconPotion.hideNow then
 					FCOSS.alertIconPotion.hideNow = false
-		    		FCOStarveStopContainerPotion:SetHidden(true)
-			    	FCOSS.alertIconPotion:SetHidden(true)
-			    end
-            end, 350)
-        end
-    end)
+					FCOStarveStopContainerPotion:SetHidden(true)
+					FCOSS.alertIconPotion:SetHidden(true)
+				end
+			end, 350)
+		end
+	end)
 
-    -- Register slash commands
+	-- Register slash commands
 	FCOSS.RegisterSlashCommands()
 end
 

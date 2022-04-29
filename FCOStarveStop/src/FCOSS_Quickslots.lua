@@ -1,6 +1,9 @@
 if FCOStarveStop == nil then FCOStarveStop = {} end
 local FCOSS = FCOStarveStop
 
+local quickslotKeyboard = FCOSS.quickslotVar
+local EMPTY_QUICKSLOT_TEXTURE = FCOSS.EMPTY_QUICKSLOT_TEXTURE
+
 ------------------------------------------------------------------------------------------------------------
 -- Quickslots
 ------------------------------------------------------------------------------------------------------------
@@ -222,8 +225,8 @@ function FCOSS.checkActiveQuickSlotIsPotionAndChangeToPotionIfNeeded()
     local currentQuickSlot = GetCurrentQuickslot()
     if currentQuickSlot ~= nil then
         --Get the current quickslot's text, quality and icon
-        local qsNameText = GetSlotName(currentQuickSlot)
-        local slotItemQuality = GetSlotItemQuality(currentQuickSlot)
+        local qsNameText = GetSlotName(currentQuickSlot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+        local slotItemQuality = (GetSlotItemQuality ~= nil and GetSlotItemQuality(currentQuickSlot)) or  GetSlotItemDisplayQuality(currentQuickSlot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
         if qsNameText and slotItemQuality then
             local r, g, b = GetInterfaceColor(INTERFACE_COLOR_TYPE_ITEM_QUALITY_COLORS, slotItemQuality)
             local colorDef = ZO_ColorDef:New(r, g, b, 1)
@@ -242,13 +245,19 @@ function FCOSS.checkActiveQuickSlotIsPotionAndChangeToPotionIfNeeded()
 end
 
 function FCOSS.GetQuickslots()
-    if not QUICKSLOT_WINDOW or not QUICKSLOT_WINDOW.quickSlots then return false end
+    if not quickslotKeyboard then return end
+    local quickslotsSlots = quickslotKeyboard.quickSlots
+    if quickslotsSlots == nil then
+        quickslotsSlots = quickslotKeyboard.wheel and quickslotKeyboard.wheel.slots
+    end
+    if quickslotsSlots == nil then return end
+
     local qsTable = {}
-    local qSlots = QUICKSLOT_WINDOW.quickSlots
+    local qSlots = quickslotsSlots
 
     for qsNr, qsControl in pairs(qSlots) do
-        local qsNameText = GetSlotName(qsNr)
-        local itemLink = GetSlotItemLink(qsNr)
+        local qsNameText = GetSlotName(qsNr, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+        local itemLink = GetSlotItemLink(qsNr, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
         local itemRequiredLevel = GetItemLinkRequiredLevel(itemLink)
         local itemRequiredVetLevel = GetItemLinkRequiredVeteranRank(itemLink)
         local itemLevel
@@ -260,21 +269,21 @@ function FCOSS.GetQuickslots()
             end
         end
 
-        local iconPath = GetSlotTexture(qsNr)
-        if not iconPath or iconPath == "" then iconPath = EMPTY_QUICKSLOT_TEXTURE end
+        local iconPath = GetSlotTexture(qsNr, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+        if qsNameText == nil or qsNameText == "" or not iconPath or iconPath == "" then iconPath = EMPTY_QUICKSLOT_TEXTURE end
 
         --Filled quickslot?
         if iconPath ~= EMPTY_QUICKSLOT_TEXTURE then
             qsNameText = zo_strformat(SI_TOOLTIP_ITEM_NAME, qsNameText)
 
-            local slotItemQuality = GetSlotItemQuality(qsNr)
-            if slotItemQuality then
+            local slotItemQuality = (GetSlotItemQuality ~= nil and GetSlotItemQuality(qsNr)) or GetSlotItemDisplayQuality(qsNr, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+            if slotItemQuality ~= nil then
                 local r, g, b = GetInterfaceColor(INTERFACE_COLOR_TYPE_ITEM_QUALITY_COLORS, slotItemQuality)
                 local colorDef = ZO_ColorDef:New(r, g, b, 1)
                 qsNameText = colorDef:Colorize(qsNameText)
             end
 
-            local countText = qsControl.countText:GetText()
+            local countText = qsControl.countText ~= nil and qsControl.countText:GetText()
             if countText and countText ~= "" then
                 qsNameText = qsNameText .. " [" .. countText .. "]"
             end
@@ -304,20 +313,26 @@ function FCOSS.GetQuickslots()
 end
 
 function FCOSS.BuildQuickSlotsSettings()
+--d("[FCOSS]BuildQuickSlotsSettings")
     --Build the quickslots selection dropdown for the addon settings menu
     local quickSlotsTable = {}
     local quickSlotsMappingTable = {}
     local quickSlotsBackwardsMappingTable = {}
     local quickSlotsNameTable = FCOSS.GetQuickslots()
 
+    local fco_ss_loc = FCOSS.localizationVars.fco_ss_loc
+
     for	i=1, ACTION_BAR_UTILITY_BAR_SIZE, 1 do
-        if quickSlotsNameTable[ACTION_BAR_FIRST_UTILITY_BAR_SLOT+i] and quickSlotsNameTable[ACTION_BAR_FIRST_UTILITY_BAR_SLOT+i] ~= "" then
-            table.insert(quickSlotsTable, quickSlotsNameTable[ACTION_BAR_FIRST_UTILITY_BAR_SLOT+i])
+        --local newIndex = ACTION_BAR_UTILITY_BAR_SIZE+i
+        local newIndex = ((UTILITY_WHEEL_KEYBOARD ~= nil and i) or (ACTION_BAR_UTILITY_BAR_SIZE + i)) --8+i
+
+        if quickSlotsNameTable[newIndex] and quickSlotsNameTable[newIndex] ~= "" then
+            table.insert(quickSlotsTable, quickSlotsNameTable[newIndex])
         else
-            table.insert(quickSlotsTable, FCOSS.localizationVars.fco_ss_loc["quickslot_nr" .. i])
+            table.insert(quickSlotsTable, fco_ss_loc["quickslot_nr" .. i])
         end
-        quickSlotsMappingTable[i] = ACTION_BAR_FIRST_UTILITY_BAR_SLOT+i
-        quickSlotsBackwardsMappingTable[ACTION_BAR_FIRST_UTILITY_BAR_SLOT+i] = i
+        quickSlotsMappingTable[i] = newIndex
+        quickSlotsBackwardsMappingTable[newIndex] = i
     end
     FCOSS.quickSlots					= quickSlotsTable
     FCOSS.quickSlotsNameTable			= quickSlotsNameTable
@@ -326,11 +341,15 @@ function FCOSS.BuildQuickSlotsSettings()
 end
 
 function FCOSS.updateQuickslotsSettingsDropdown()
+--d("[FCOSS]updateQuickslotsSettingsDropdown")
     --Rebuild the quickslots for the addon settings menu
     FCOSS.BuildQuickSlotsSettings()
+    local quickSlots = FCOSS.quickSlots
+    local quickSlotsBackwardsMapping = FCOSS.quickSlotsBackwardsMapping
+    local currentSettings = FCOSS.settingsVars.settings
 
     --Update the addon menu dropdowns with the actual quickslots
-    if     FCOSS.quickSlots
+    if quickSlots ~= nil
             and FCOStarveStop_Settings_PvE_Select and FCOStarveStop_Settings_PvE_Combat_Select
             and FCOStarveStop_Settings_PvP_Select and FCOStarveStop_Settings_PvP_Combat_Select
             and FCOStarveStop_Settings_Delve_PvE_Select and FCOStarveStop_Settings_Delve_PvE_Combat_Select
@@ -346,55 +365,55 @@ function FCOSS.updateQuickslotsSettingsDropdown()
 
         --Clear and add new entries from current quickslots
         --PVE
-        FCOStarveStop_Settings_PvE_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_PvE_Combat_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_Delve_PvE_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_Delve_PvE_Combat_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_PublicDungeon_PvE_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_PublicDungeon_PvE_Combat_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_GroupDungeon_PvE_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_GroupDungeon_PvE_Combat_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_RaidDungeon_PvE_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_RaidDungeon_PvE_Combat_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_FoodBuff_PvE_Select:UpdateChoices(FCOSS.quickSlots)
+        FCOStarveStop_Settings_PvE_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_PvE_Combat_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_Delve_PvE_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_Delve_PvE_Combat_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_PublicDungeon_PvE_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_PublicDungeon_PvE_Combat_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_GroupDungeon_PvE_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_GroupDungeon_PvE_Combat_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_RaidDungeon_PvE_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_RaidDungeon_PvE_Combat_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_FoodBuff_PvE_Select:UpdateChoices(quickSlots)
         --PVP
-        FCOStarveStop_Settings_PvP_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_PvP_Combat_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_Delve_PvP_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_Delve_PvP_Combat_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_PublicDungeon_PvP_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_PublicDungeon_PvP_Combat_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_GroupDungeon_PvP_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_GroupDungeon_PvP_Combat_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_RaidDungeon_PvP_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_RaidDungeon_PvP_Combat_Select:UpdateChoices(FCOSS.quickSlots)
-        FCOStarveStop_Settings_FoodBuff_PvP_Select:UpdateChoices(FCOSS.quickSlots)
+        FCOStarveStop_Settings_PvP_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_PvP_Combat_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_Delve_PvP_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_Delve_PvP_Combat_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_PublicDungeon_PvP_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_PublicDungeon_PvP_Combat_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_GroupDungeon_PvP_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_GroupDungeon_PvP_Combat_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_RaidDungeon_PvP_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_RaidDungeon_PvP_Combat_Select:UpdateChoices(quickSlots)
+        FCOStarveStop_Settings_FoodBuff_PvP_Select:UpdateChoices(quickSlots)
 
         --Set the current selected entry again
         --PVE
-        FCOStarveStop_Settings_PvE_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToPVE]])
-        FCOStarveStop_Settings_PvE_Combat_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToPVEInCombat]])
-        FCOStarveStop_Settings_Delve_PvE_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToDelvePVE]])
-        FCOStarveStop_Settings_Delve_PvE_Combat_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToDelvePVEInCombat]])
-        FCOStarveStop_Settings_PublicDungeon_PvE_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToPublicDungeonPVE]])
-        FCOStarveStop_Settings_PublicDungeon_PvE_Combat_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToPublicDungeonPVEInCombat]])
-        FCOStarveStop_Settings_GroupDungeon_PvE_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToGroupDungeonPVE]])
-        FCOStarveStop_Settings_GroupDungeon_PvE_Combat_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToGroupDungeonPVEInCombat]])
-        FCOStarveStop_Settings_RaidDungeon_PvE_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToRaidDungeonPVE]])
-        FCOStarveStop_Settings_RaidDungeon_PvE_Combat_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToRaidDungeonPVEInCombat]])
-        FCOStarveStop_Settings_FoodBuff_PvE_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToFoodBuffPVE]])
+        FCOStarveStop_Settings_PvE_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToPVE]])
+        FCOStarveStop_Settings_PvE_Combat_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToPVEInCombat]])
+        FCOStarveStop_Settings_Delve_PvE_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToDelvePVE]])
+        FCOStarveStop_Settings_Delve_PvE_Combat_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToDelvePVEInCombat]])
+        FCOStarveStop_Settings_PublicDungeon_PvE_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToPublicDungeonPVE]])
+        FCOStarveStop_Settings_PublicDungeon_PvE_Combat_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToPublicDungeonPVEInCombat]])
+        FCOStarveStop_Settings_GroupDungeon_PvE_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToGroupDungeonPVE]])
+        FCOStarveStop_Settings_GroupDungeon_PvE_Combat_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToGroupDungeonPVEInCombat]])
+        FCOStarveStop_Settings_RaidDungeon_PvE_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToRaidDungeonPVE]])
+        FCOStarveStop_Settings_RaidDungeon_PvE_Combat_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToRaidDungeonPVEInCombat]])
+        FCOStarveStop_Settings_FoodBuff_PvE_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToFoodBuffPVE]])
         --PVP
-        FCOStarveStop_Settings_PvP_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToPVP]])
-        FCOStarveStop_Settings_PvP_Combat_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToPVPInCombat]])
-        FCOStarveStop_Settings_Delve_PvP_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToDelvePVP]])
-        FCOStarveStop_Settings_Delve_PvP_Combat_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToDelvePVPInCombat]])
-        FCOStarveStop_Settings_PublicDungeon_PvP_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToPublicDungeonPVP]])
-        FCOStarveStop_Settings_PublicDungeon_PvP_Combat_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToPublicDungeonPVPInCombat]])
-        FCOStarveStop_Settings_GroupDungeon_PvP_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToGroupDungeonPVP]])
-        FCOStarveStop_Settings_GroupDungeon_PvP_Combat_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToGroupDungeonPVPInCombat]])
-        FCOStarveStop_Settings_RaidDungeon_PvP_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToRaidDungeonPVP]])
-        FCOStarveStop_Settings_RaidDungeon_PvP_Combat_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToRaidDungeonPVPInCombat]])
-        FCOStarveStop_Settings_FoodBuff_PvP_Select:UpdateValue(false, FCOSS.quickSlots[FCOSS.quickSlotsBackwardsMapping[FCOSS.settingsVars.settings.quickSlotChangeToFoodBuffPVP]])
+        FCOStarveStop_Settings_PvP_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToPVP]])
+        FCOStarveStop_Settings_PvP_Combat_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToPVPInCombat]])
+        FCOStarveStop_Settings_Delve_PvP_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToDelvePVP]])
+        FCOStarveStop_Settings_Delve_PvP_Combat_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToDelvePVPInCombat]])
+        FCOStarveStop_Settings_PublicDungeon_PvP_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToPublicDungeonPVP]])
+        FCOStarveStop_Settings_PublicDungeon_PvP_Combat_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToPublicDungeonPVPInCombat]])
+        FCOStarveStop_Settings_GroupDungeon_PvP_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToGroupDungeonPVP]])
+        FCOStarveStop_Settings_GroupDungeon_PvP_Combat_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToGroupDungeonPVPInCombat]])
+        FCOStarveStop_Settings_RaidDungeon_PvP_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToRaidDungeonPVP]])
+        FCOStarveStop_Settings_RaidDungeon_PvP_Combat_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToRaidDungeonPVPInCombat]])
+        FCOStarveStop_Settings_FoodBuff_PvP_Select:UpdateValue(false, quickSlots[quickSlotsBackwardsMapping[currentSettings.quickSlotChangeToFoodBuffPVP]])
     end
 end
 
