@@ -2,9 +2,9 @@
 ## Author: Baertram
 ## Version: 0.95
 ## AddOnVersion: 095
-## APIVersion: 101033 101034
+## APIVersion: 101034 101035
 ## SavedVariables: FCOStarveStop_Settings
-## DependsOn: LibAddonMenu-2.0>=33 LibFoodDrinkBuff>=15 LibPotionBuff>=3
+## DependsOn: LibAddonMenu-2.0>=34 LibFoodDrinkBuff>=15 LibPotionBuff>=3
 
 ##Code
 src/FCOSS_Constants.lua

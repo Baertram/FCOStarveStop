@@ -47,10 +47,10 @@ FCOSS.quickSlotsMapping		= {}
 --Are we at the new quickslots introduced wit API101034 High Isle (Multi quickslot wheels)
 local quickslotsNew                         = (QUICKSLOT_KEYBOARD ~= nil and true) or false
 FCOSS.quickslotsNew                         = quickslotsNew
-FCOSS.quickSlotsActionButtonIndex           = (quickslotsNew and 1) or (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) --8+1
-local quickslotKeyboard                     = (quickslotsNew and QUICKSLOT_KEYBOARD) or QUICKSLOT_WINDOW
+FCOSS.quickSlotsActionButtonIndex           = 1
+local quickslotKeyboard                     = QUICKSLOT_KEYBOARD
 FCOSS.quickslotVar = quickslotKeyboard
-local quickSlotWheel                        = (quickslotsNew and UTILITY_WHEEL_KEYBOARD) or QUICKSLOT_RADIAL_KEYBOARD
+local quickSlotWheel                        = UTILITY_WHEEL_KEYBOARD
 FCOSS.quickslotWheelVar = quickSlotWheel
 
 local EMPTY_QUICKSLOT_TEXTURE               = "/esoui/art/quickslots/quickslot_emptyslot.dds"
