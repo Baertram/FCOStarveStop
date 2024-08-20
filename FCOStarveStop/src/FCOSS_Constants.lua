@@ -6,7 +6,7 @@ local FCOSS = FCOStarveStop
 -- Addon info
 ------------------------------------------------------------------------------------------------------------
 FCOSS.addonVars =  {}
-FCOSS.addonVars.addonRealVersion		= 0.95
+FCOSS.addonVars.addonRealVersion		= 0.96
 FCOSS.addonVars.addonSavedVarsVersion	= 0.4
 FCOSS.addonVars.addonName				= "FCOStarveStop"
 FCOSS.addonVars.addonSavedVars			= "FCOStarveStop_Settings"
@@ -15,6 +15,9 @@ FCOSS.addonVars.settingsDisplayName   	= "|c00FF00FCO |cFFFF00 StarveStop|r"
 FCOSS.addonVars.addonAuthor				= "Baertram"
 FCOSS.addonVars.addonWebsite			= "http://www.esoui.com/downloads/info1291-FCOStarveStop.html#info"
 
+
+--For deferred init.
+FCOSS.wasInitialized = {}
 
 ------------------------------------------------------------------------------------------------------------
 -- Constants & variables

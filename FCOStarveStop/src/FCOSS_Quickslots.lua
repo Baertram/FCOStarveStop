@@ -248,8 +248,13 @@ end
 
 function FCOSS.GetQuickslots()
     if not quickslotKeyboard then return end
+
+    if not FCOSS.wasInitialized["quickslots"] then
+d("[FCOCS]GetQuickslots - Quickslots not initialized yet")
+        return {}
+    end
     local quickslotsSlots = (quickslotsNew and quickslotKeyboard.wheel and quickslotKeyboard.wheel.slots) or quickslotKeyboard.quickSlots
-    if quickslotsSlots == nil then return end
+    if quickslotsSlots == nil then return {} end
 
     local qsTable = {}
     local qSlots = quickslotsSlots
@@ -312,7 +317,8 @@ function FCOSS.GetQuickslots()
 end
 
 function FCOSS.BuildQuickSlotsSettings()
---d("[FCOSS]BuildQuickSlotsSettings")
+    --d("[FCOSS]BuildQuickSlotsSettings")
+
     --Build the quickslots selection dropdown for the addon settings menu
     local quickSlotsTable = {}
     local quickSlotsMappingTable = {}
@@ -325,7 +331,7 @@ function FCOSS.BuildQuickSlotsSettings()
         --local newIndex = ACTION_BAR_UTILITY_BAR_SIZE+i
         local newIndex = ((UTILITY_WHEEL_KEYBOARD ~= nil and i) or (ACTION_BAR_UTILITY_BAR_SIZE + i)) --8+i
 
-        if quickSlotsNameTable[newIndex] and quickSlotsNameTable[newIndex] ~= "" then
+        if quickSlotsNameTable and quickSlotsNameTable[newIndex] and quickSlotsNameTable[newIndex] ~= "" then
             table.insert(quickSlotsTable, quickSlotsNameTable[newIndex])
         else
             table.insert(quickSlotsTable, fco_ss_loc["quickslot_nr" .. i])
@@ -337,12 +343,15 @@ function FCOSS.BuildQuickSlotsSettings()
     FCOSS.quickSlotsNameTable			= quickSlotsNameTable
     FCOSS.quickSlotsMapping				= quickSlotsMappingTable
     FCOSS.quickSlotsBackwardsMapping 	= quickSlotsBackwardsMappingTable
+
+    return true
 end
 
 function FCOSS.updateQuickslotsSettingsDropdown()
 --d("[FCOSS]updateQuickslotsSettingsDropdown")
     --Rebuild the quickslots for the addon settings menu
     FCOSS.BuildQuickSlotsSettings()
+
     local quickSlots = FCOSS.quickSlots
     local quickSlotsBackwardsMapping = FCOSS.quickSlotsBackwardsMapping
     local currentSettings = FCOSS.settingsVars.settings

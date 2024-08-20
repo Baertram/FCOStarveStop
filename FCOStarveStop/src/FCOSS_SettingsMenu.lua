@@ -1531,10 +1531,16 @@ function FCOSS.buildAddonMenu()
     FCOSS.addonMenuPanel = FCOSS.addonMenu:RegisterAddonPanel("FCOStarveStop_SettingsMenu", FCOSS.panelData)
     FCOSS.addonMenu:RegisterOptionControls("FCOStarveStop_SettingsMenu", FCOSS.optionsData)
     --Show the alert icon and potion alert icon
+    local firstOpenLAMSettingsPanel = true
     local function FCOSS_LAM_Opened(panel)
         if panel == FCOSS.addonMenuPanel then
+            if not firstOpenLAMSettingsPanel then
+                FCOSS.updateQuickslotsSettingsDropdown()
+            end
             FCOSS.ToggleAlertIcon(true, false, false)
             FCOSS.toggleAlertIconPotion(true, false)
+
+            firstOpenLAMSettingsPanel = false
         end
     end
     --Hide the alert icon and potion alert icon

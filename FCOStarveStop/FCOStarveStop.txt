@@ -1,10 +1,10 @@
 ## Title: |c00FF00FCO |cFFFF00StarveStop|r
 ## Author: Baertram
-## Version: 0.95
-## AddOnVersion: 095
-## APIVersion: 101034 101035
+## Version: 0.96
+## AddOnVersion: 096
+## APIVersion: 101043 101044
 ## SavedVariables: FCOStarveStop_Settings
-## DependsOn: LibAddonMenu-2.0>=34 LibFoodDrinkBuff>=15 LibPotionBuff>=3
+## DependsOn: LibAddonMenu-2.0>=37 LibFoodDrinkBuff>=18 LibPotionBuff>=3
 
 ##Code
 src/FCOSS_Constants.lua

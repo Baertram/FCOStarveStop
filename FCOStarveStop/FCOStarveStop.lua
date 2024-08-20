@@ -26,15 +26,54 @@ FCOSS.addonMenu = LibAddonMenu2
 --local quickslotBarIndexMax = ACTION_BAR_FIRST_UTILITY_BAR_SLOT + ACTION_BAR_UTILITY_BAR_SIZE
 --ACTION_BAR_FIRST_NORMAL_SLOT_INDEX
 
+local function quickSlotsDeferredInitialization()
+--d("[FCOCS]Quickslots initialized NOW")
+	FCOSS.wasInitialized["quickslots"] = true
+
+	FCOSS.updateQuickslotsSettingsDropdown()
+end
+
+
 local function FCOSS_addonLoaded(evetName, addonNameOfAddonLoaded)
 	if addonNameOfAddonLoaded ~= addonName then return end
 	EM:UnregisterForEvent(evetName)
+
+	--Check if any other dependent/similar addon is active
+	FCOSS.checkIfOtherAddonsAreActive()
+
+	--Load the SavedVariables settings
+	FCOSS.loadSettings()
+
+	--Deactivate debugging again
+	FCOSS.debug = false
+
+	-- Set Localization
+	FCOSS.preventerVars.KeyBindingTexts = false
+	FCOSS.Localization()
+
+	--Initialize the food and drink buff ability ID names (description texts) for the current active client language
+	--FCOSS.getFoodBuffNames(false) --> Using library libFoodDrinkBuffs now
+
+	local settings = FCOSS.settingsVars.settings
+	local defaults = FCOSS.settingsVars.defaults
+	--Update some localized settings now
+	if not settings.textAlertGeneralChanged and settings.textAlertGeneral == defaults["textAlertGeneral"] and FCOSS.localizationVars.fco_ss_loc["icon_tooltip_text"] ~= "" then
+		settings.textAlertGeneral = FCOSS.localizationVars.fco_ss_loc["icon_tooltip_text"]
+	end
+	if not settings.textAlertGeneralChangedPotion and settings.textAlertGeneralPotion == defaults["textAlertGeneralPotion"] and FCOSS.localizationVars.fco_ss_loc["icon_tooltip_potion_text"] ~= "" then
+		settings.textAlertGeneralPotion = FCOSS.localizationVars.fco_ss_loc["icon_tooltip_potion_text"]
+	end
+
+
+	--Deferred init of quickslots (on first open of them)
+	SecurePostHook(QUICKSLOT_KEYBOARD, "OnDeferredInitialize", quickSlotsDeferredInitialization)
 
 	--Save the last selected quickslot before it gets changed
 	ZO_PreHook(quickSlotWheel, "PopulateMenu", function()
 		FCOSS.lastSelectedQuickslot = GetCurrentQuickslot()	--QUICKSLOT_RADIAL_KEYBOARD.selectedSlotNum
 		--d("[FCOSS]lastSelectedQuickslot: " ..tostring(FCOSS.lastSelectedQuickslot))
 	end)
+
 	--Check if quickslot was used, and a collectible was used, and if it was a companion
 	--ZO_PreHook("ZO_ActionBar_CanUseActionSlots", function()
 	SecurePostHook("ZO_ActionBar_OnActionButtonUp", function(slotNum)
@@ -68,31 +107,6 @@ local function FCOSS_addonLoaded(evetName, addonNameOfAddonLoaded)
 		end
 	end)
 
-	--Check if any other dependent/similar addon is active
-	FCOSS.checkIfOtherAddonsAreActive()
-
-	--Load the SavedVariables settings
-	FCOSS.loadSettings()
-
-	--Deactivate debugging again
-	FCOSS.debug = false
-
-	-- Set Localization
-	FCOSS.preventerVars.KeyBindingTexts = false
-	FCOSS.Localization()
-
-	--Initialize the food and drink buff ability ID names (description texts) for the current active client language
-	--FCOSS.getFoodBuffNames(false) --> Using library libFoodDrinkBuffs now
-
-	local settings = FCOSS.settingsVars.settings
-	local defaults = FCOSS.settingsVars.defaults
-	--Update some localized settings now
-	if not settings.textAlertGeneralChanged and settings.textAlertGeneral == defaults["textAlertGeneral"] and FCOSS.localizationVars.fco_ss_loc["icon_tooltip_text"] ~= "" then
-		settings.textAlertGeneral = FCOSS.localizationVars.fco_ss_loc["icon_tooltip_text"]
-	end
-	if not settings.textAlertGeneralChangedPotion and settings.textAlertGeneralPotion == defaults["textAlertGeneralPotion"] and FCOSS.localizationVars.fco_ss_loc["icon_tooltip_potion_text"] ~= "" then
-		settings.textAlertGeneralPotion = FCOSS.localizationVars.fco_ss_loc["icon_tooltip_potion_text"]
-	end
 
 	--Load the eevent callback functions
 	FCOSS.loadEvents()
